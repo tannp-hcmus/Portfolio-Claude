@@ -1,5 +1,5 @@
 import "./ArticlePortfolio.scss"
-import React, {useEffect, useState} from 'react'
+import React, {useState} from 'react'
 import Article from "/src/components/articles/base/Article.jsx"
 import Transitionable from "/src/components/capabilities/Transitionable.jsx"
 import {useViewport} from "/src/providers/ViewportProvider.jsx"
@@ -8,6 +8,10 @@ import AvatarView from "/src/components/generic/AvatarView.jsx"
 import {Tag, Tags} from "/src/components/generic/Tags.jsx"
 import ArticleItemPreviewMenu from "/src/components/articles/partials/ArticleItemPreviewMenu.jsx"
 import {useLanguage} from "/src/providers/LanguageProvider.jsx"
+import PortfolioSearchBar from "/src/components/generic/PortfolioSearchBar.jsx"
+import PortfolioEmptyState from "/src/components/generic/PortfolioEmptyState.jsx"
+import {filterPortfolioItems} from "/src/hooks/utils/portfolioSearch.js"
+import {useDebouncedValue} from "/src/hooks/utils/useDebouncedValue.js"
 
 /**
  * @param {ArticleDataWrapper} dataWrapper
@@ -17,6 +21,8 @@ import {useLanguage} from "/src/providers/LanguageProvider.jsx"
  */
 function ArticlePortfolio({ dataWrapper, id }) {
     const [selectedItemCategoryId, setSelectedItemCategoryId] = useState(null)
+    const [searchQuery, setSearchQuery] = useState("")
+    const debouncedSearchQuery = useDebouncedValue(searchQuery, 300)
 
     return (
         <Article id={dataWrapper.uniqueId}
@@ -25,8 +31,13 @@ function ArticlePortfolio({ dataWrapper, id }) {
                  className={`article-portfolio`}
                  selectedItemCategoryId={selectedItemCategoryId}
                  setSelectedItemCategoryId={setSelectedItemCategoryId}>
+            <PortfolioSearchBar value={searchQuery}
+                                onChange={setSearchQuery}
+                                className={`article-portfolio-search`}/>
             <ArticlePortfolioItems dataWrapper={dataWrapper}
-                                   selectedItemCategoryId={selectedItemCategoryId}/>
+                                   selectedItemCategoryId={selectedItemCategoryId}
+                                   searchQuery={debouncedSearchQuery}
+                                   onResetSearch={() => setSearchQuery("")}/>
         </Article>
     )
 }
@@ -34,39 +45,54 @@ function ArticlePortfolio({ dataWrapper, id }) {
 /**
  * @param {ArticleDataWrapper} dataWrapper
  * @param {String} selectedItemCategoryId
+ * @param {String} searchQuery
+ * @param {Function} onResetSearch
  * @return {JSX.Element}
  * @constructor
  */
-function ArticlePortfolioItems({ dataWrapper, selectedItemCategoryId }) {
+function ArticlePortfolioItems({ dataWrapper, selectedItemCategoryId, searchQuery = "", onResetSearch }) {
     const constants = useConstants()
     const language = useLanguage()
     const viewport = useViewport()
 
-    const filteredItems = dataWrapper.getOrderedItemsFilteredBy(selectedItemCategoryId)
+    const categoryItems = dataWrapper.getOrderedItemsFilteredBy(selectedItemCategoryId)
+    const filteredItems = filterPortfolioItems(categoryItems, searchQuery)
     const customBreakpoint = viewport.getCustomBreakpoint(constants.SWIPER_BREAKPOINTS_FOR_THREE_SLIDES)
 
     const itemsPerRow = customBreakpoint?.slidesPerView || 1
     const itemsPerRowClass = `article-portfolio-items-${itemsPerRow}-per-row`
 
     const refreshFlag = dataWrapper.categories?.length ?
-        selectedItemCategoryId + "-" + language.getSelectedLanguage()?.id :
-        language.getSelectedLanguage()?.id
+        selectedItemCategoryId + "-" + language.getSelectedLanguage()?.id + "-" + searchQuery :
+        language.getSelectedLanguage()?.id + "-" + searchQuery
 
-    if(dataWrapper.categories?.length) {
-        return (
-            <Transitionable id={dataWrapper.uniqueId}
-                            refreshFlag={refreshFlag}
-                            delayBetweenItems={100}
-                            animation={Transitionable.Animations.POP}
-                            className={`article-portfolio-items ${itemsPerRowClass}`}>
-                {filteredItems.map((itemWrapper, key) => (
-                    <ArticlePortfolioItem itemWrapper={itemWrapper}
-                                          key={key}/>
-                ))}
-            </Transitionable>
-        )
-    }
-    else {
+    const isSearching = Boolean(searchQuery && searchQuery.trim())
+
+    const resultsAnnouncement = language.getString("portfolio_search_results_count")
+        .replace("{x}", String(filteredItems.length))
+
+    const grid = (() => {
+        if(!filteredItems.length && isSearching) {
+            return (
+                <PortfolioEmptyState onResetSearch={onResetSearch}/>
+            )
+        }
+
+        if(dataWrapper.categories?.length) {
+            return (
+                <Transitionable id={dataWrapper.uniqueId}
+                                refreshFlag={refreshFlag}
+                                delayBetweenItems={100}
+                                animation={Transitionable.Animations.POP}
+                                className={`article-portfolio-items ${itemsPerRowClass}`}>
+                    {filteredItems.map((itemWrapper, key) => (
+                        <ArticlePortfolioItem itemWrapper={itemWrapper}
+                                              key={key}/>
+                    ))}
+                </Transitionable>
+            )
+        }
+
         return (
             <div className={`article-portfolio-items ${itemsPerRowClass} mb-3 mb-lg-2`}>
                 {filteredItems.map((itemWrapper, key) => (
@@ -75,7 +101,17 @@ function ArticlePortfolioItems({ dataWrapper, selectedItemCategoryId }) {
                 ))}
             </div>
         )
-    }
+    })()
+
+    return (
+        <>
+            {/* Announce result count changes to screen readers without showing visible text. */}
+            <div className={`visually-hidden`} role={`status`} aria-live={`polite`}>
+                {resultsAnnouncement}
+            </div>
+            {grid}
+        </>
+    )
 }
 
 /**

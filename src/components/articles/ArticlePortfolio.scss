@@ -93,3 +93,39 @@ div.article-portfolio-item-body {
 div.article-portfolio-item-footer {
     margin-top: 10px;
 }
+
+div.article-portfolio-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    padding: 40px 20px;
+    color: var(--theme-texts-light-2);
+
+    i.article-portfolio-empty-icon {
+        font-size: 2rem;
+        margin-bottom: 12px;
+        opacity: 0.6;
+    }
+
+    p.article-portfolio-empty-message {
+        margin-bottom: 16px;
+        color: var(--theme-texts-light-1);
+    }
+
+    button.article-portfolio-empty-reset {
+        background-color: var(--theme-primary);
+        color: var(--theme-texts-inv);
+        border: none;
+        border-radius: $standard-border-radius;
+        padding: 8px 18px;
+
+        &:hover, &:focus {
+            background-color: var(--theme-links-hover);
+            color: var(--theme-texts-inv);
+            outline: none;
+        }
+    }
+}
