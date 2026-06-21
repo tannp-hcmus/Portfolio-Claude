@@ -6,7 +6,7 @@
 
 **Architecture:** Two additive files — `CLAUDE.md` at repo root (L3/L4 context) and `.github/workflows/ci.yml` (L6 gate). The existing `deploy.yml`, feature code, and 21 passing tests are left untouched. Backpressure is proven by flipping one assertion in `portfolioSearch.test.js` on a throwaway branch (RED), then reverting it (GREEN).
 
-**Tech Stack:** React 18 + Vite 6, Vitest 3 + React Testing Library, ESLint 9 (flat config), GitHub Actions, Node 18.
+**Tech Stack:** React 18 + Vite 6, Vitest 3 + React Testing Library, ESLint 9 (flat config), GitHub Actions, Node 20 (jsdom@29 requires Node 20+; Node 18 fails with ERR_REQUIRE_ESM).
 
 ---
 
@@ -126,7 +126,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: npm
 
       - name: Install dependencies
