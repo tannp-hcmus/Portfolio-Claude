@@ -54,7 +54,7 @@ describe("itemMatchesQuery", () => {
     })
 
     it("matches on a tag", () => {
-        expect(itemMatchesQuery(ITEMS[0], "reactjs")).toBe(false)
+        expect(itemMatchesQuery(ITEMS[0], "reactjs")).toBe(true)
     })
 
     it("matches on the description (ignoring HTML)", () => {
